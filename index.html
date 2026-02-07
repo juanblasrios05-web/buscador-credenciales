@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Credenciales</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; color: #333; }
+        .search-box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input[type="text"] { width: 100%; padding: 12px; font-size: 16px; border: 2px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        .results { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .result { padding: 15px; border-bottom: 1px solid #eee; display: flex; flex-wrap: wrap; gap: 10px; }
+        .result:last-child { border-bottom: none; }
+        .field { flex: 1 1 200px; }
+        .field strong { color: #007bff; }
+        .copy-btn { background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+        .copy-btn:hover { background: #218838; }
+        .no-results { text-align: center; padding: 40px; color: #666; }
+        @media (max-width: 600px) { .result { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <h1>🔍 Buscador de Credenciales</h1>
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Buscar por nombre, apellido o código (ej: Juan, Pérez, 12345678)...">
+    </div>
+    <div id="results" class="results"></div>
+
+    <script>
+        let allData = [];
+
+        // Cargar datos
+        fetch('datos.json')
+            .then(response => response.json())
+            .then(data => {
+                allData = data;
+                console.log('Datos cargados:', allData.length);
+            })
+            .catch(error => console.error('Error cargando datos:', error));
+
+        // Función de búsqueda
+        function search() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const resultsDiv = document.getElementById('results');
+
+            if (!query) {
+                resultsDiv.innerHTML = '<div class="no-results">Escribe algo para buscar...</div>';
+                return;
+            }
+
+            // Normalizar función (quitar tildes, espacios)
+            function normalize(str) {
+                return str.toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+            }
+
+            const matches = allData.filter(item => {
+                return normalize(item.nombre).includes(query) ||
+                       normalize(item.apellido).includes(query) ||
+                       normalize(item.codigo).includes(query);
+            });
+
+            if (matches.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No se encontraron resultados.</div>';
+                return;
+            }
+
+            resultsDiv.innerHTML = matches.map(item => `
+                <div class="result">
+                    <div class="field"><strong>Nombre:</strong> ${item.nombre} ${item.apellido}</div>
+                    <div class="field"><strong>Código:</strong> ${item.codigo}</div>
+                    <div class="field"><strong>Biblioteca:</strong> ${item.usuario_biblio} / ${item.pass_biblio}</div>
+                    <div class="field"><strong>AV:</strong> ${item.usuario_av}</div>
+                    <div class="field"><strong>Portal:</strong> ${item.usuario_portal}</div>
+                    <div class="field"><strong>Correo:</strong> ${item.correo}</div>
+                    <div class="field"><strong>Contraseña:</strong> ${item.pass_general}</div>
+                    <button class="copy-btn" onclick="copyAll('${item.codigo}|${item.nombre}|${item.apellido}|${item.usuario_biblio}|${item.pass_biblio}|${item.usuario_av}|${item.usuario_portal}|${item.correo}|${item.pass_general}')">📋 Copiar todo</button>
+                </div>
+            `).join('');
+        }
+
+        // Evento de búsqueda
+        document.getElementById('searchInput').addEventListener('input', search);
+
+        // Función copiar todo al portapapeles
+        function copyAll(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('¡Datos copiados al portapapeles!');
+            });
+        }
+    </script>
+</body>
+</html>
